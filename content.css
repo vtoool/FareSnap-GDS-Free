@@ -1,0 +1,284 @@
+#kayak-copy-overlay-root{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:2147483000;
+}
+
+#kayak-copy-overlay-root .kayak-copy-btn-group{
+  pointer-events:auto;
+}
+
+.kayak-copy-btn-group{
+  position:fixed;
+  top:0;
+  left:0;
+  display:flex;
+  gap:8px;
+  z-index:2147483001;
+}
+
+.kayak-copy-inline-host{
+  position:relative;
+}
+
+.kayak-copy-inline-slot{
+  position:relative;
+  min-height:56px;
+  margin:4px 0 12px;
+  display:block;
+}
+
+.kayak-copy-inline-slot .kayak-copy-btn-group--ita{
+  top:8px;
+  right:12px;
+  left:auto;
+}
+
+.kayak-copy-btn-group.kayak-copy-btn-group--ita{
+  position:absolute;
+  top:12px;
+  right:16px;
+  left:auto;
+  gap:6px;
+  z-index:2147483002;
+  pointer-events:auto;
+}
+
+.kayak-copy-btn-group--multi{
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+  align-items:center;
+}
+
+.kayak-copy-btn-group--ita.kayak-copy-btn-group--multi{
+  right:16px;
+  left:auto;
+  max-width:calc(100% - 20px);
+}
+
+.kayak-copy-btn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  padding:0;
+  border-radius:50%;
+  border:2px solid rgba(64,86,217,.82);
+  background:linear-gradient(180deg, rgba(248,249,255,.98) 0%, rgba(234,238,255,.98) 100%);
+  box-shadow:0 4px 14px rgba(0,0,0,.22);
+  cursor:pointer;
+  backdrop-filter:saturate(1.08) blur(3px);
+  transition:transform .18s ease, box-shadow .18s ease, background .22s ease, border-color .22s ease, filter .22s ease, opacity .22s ease, color .22s ease;
+  font:700 14px/1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  color:#3146c9;
+  overflow:hidden;
+}
+
+.kayak-copy-btn.kayak-copy-btn--availability{
+  width:auto;
+  min-width:72px;
+  height:44px;
+  padding:0 16px;
+  border-radius:999px;
+  max-width:min(360px, 72vw);
+}
+
+.kayak-copy-btn.kayak-copy-btn--ita{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  border:2px solid rgba(64,86,217,.82);
+  box-shadow:0 4px 14px rgba(0,0,0,.2);
+}
+
+.kayak-copy-btn.kayak-copy-btn--ita:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(0,0,0,.28);
+}
+
+.kayak-copy-btn.kayak-copy-btn--ita:active{
+  transform:translateY(0);
+  box-shadow:0 3px 10px rgba(0,0,0,.26);
+}
+
+.kayak-copy-btn-group--ita .kayak-copy-btn{
+  width:36px;
+  height:36px;
+}
+
+.kayak-copy-btn-group--ita.kayak-copy-btn-group--multi .kayak-copy-btn{
+  width:auto;
+  min-width:60px;
+  height:32px;
+  padding:0 14px;
+  border-radius:999px;
+  flex:0 1 auto;
+  max-width:calc(100% - 8px);
+}
+
+.kayak-copy-btn-group--multi .kayak-copy-btn{
+  flex:0 1 auto;
+  min-width:60px;
+  max-width:min(340px, 72vw);
+}
+
+.kayak-copy-btn-group--ita .kayak-copy-btn .pill-text{
+  color:inherit;
+  font-size:12px;
+}
+
+.kayak-copy-btn-group--multi .kayak-copy-btn .pill-text{
+  font-size:12px;
+  letter-spacing:0;
+}
+
+.kayak-copy-btn.kayak-copy-btn--ita .pill-check{
+  font-size:16px;
+}
+.kayak-copy-btn:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(9,19,33,.32); }
+.kayak-copy-btn:active{ transform:translateY(0); box-shadow:0 3px 10px rgba(9,19,33,.25); }
+
+.kayak-copy-btn .pill-text,
+.kayak-copy-btn .pill-check{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:100%;
+  letter-spacing:.04em;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.kayak-copy-btn.kayak-copy-btn--availability .pill-text{
+  position:relative;
+  inset:auto;
+  width:auto;
+  height:auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 4px;
+  white-space:nowrap;
+}
+.kayak-copy-btn .pill-text{ color:inherit; }
+.kayak-copy-btn .pill-check{
+  font-size:20px;
+  opacity:0;
+  transform:scale(.6);
+  color:#1a1a1a;
+}
+
+.kayak-copy-btn.is-copied{
+  background:linear-gradient(180deg, #5a77ff 0%, #1e40ff 100%);
+  border-color:rgba(231, 237, 255, .95);
+  color:#fff;
+  box-shadow:0 6px 18px rgba(38, 64, 178, .36);
+}
+.kayak-copy-btn.is-copied .pill-text{ opacity:0; transform:scale(.7); }
+.kayak-copy-btn.is-copied .pill-check{ opacity:1; transform:scale(1); color:#fff; }
+.kayak-copy-btn.is-copied::after{
+  content:'';
+  position:absolute;
+  inset:-4px;
+  border-radius:50%;
+  border:2px solid rgba(90, 119, 255, .45);
+  pointer-events:none;
+  animation:kayak-copy-ping .45s ease-out forwards;
+}
+
+.kayak-copy-btn.kayak-copy-btn--availability.is-copied::after{
+  border-radius:999px;
+}
+
+.kayak-copy-btn.kayak-copy-btn--journey{
+  width:auto;
+  min-width:68px;
+  height:32px;
+  padding:0 18px;
+  border-radius:999px;
+  font-size:12px;
+  letter-spacing:0;
+  overflow:visible;
+  flex:0 1 auto;
+  max-width:min(360px, 72vw);
+}
+
+.kayak-copy-btn.kayak-copy-btn--journey .pill-text{
+  position:relative;
+  inset:auto;
+  width:auto;
+  height:auto;
+  font-size:12px;
+  letter-spacing:0;
+  white-space:nowrap;
+  padding:0 8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.kayak-copy-btn--journey.is-copied::after{
+  border-radius:999px;
+}
+
+html.kayak-copy-modal-dim .kayak-copy-btn{
+  opacity:.82;
+  filter:saturate(.85) brightness(.84);
+  box-shadow:0 3px 12px rgba(9,19,33,.22);
+}
+
+html.kayak-copy-modal-dim .kayak-copy-btn.kayak-copy-btn--ita{
+  box-shadow:0 3px 12px rgba(0,0,0,.24);
+}
+
+html.kayak-copy-modal-dim .kayak-copy-btn.is-copied{
+  filter:saturate(.94) brightness(.9);
+  box-shadow:0 4px 14px rgba(38,64,178,.32);
+}
+
+.kayak-copy-cabin-hint{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px 8px;
+  margin-right:6px;
+  margin-bottom:4px;
+  border-radius:999px;
+  background:rgba(16,26,42,.85);
+  color:#fff;
+  font:600 10px/1 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  pointer-events:none;
+  flex-shrink:0;
+}
+
+@keyframes kayak-copy-ping{
+  from{ transform:scale(.8); opacity:.7; }
+  to{ transform:scale(1.35); opacity:0; }
+}
+
+.kayak-copy-toast{
+  position:fixed;
+  left:50%;
+  bottom:24px;
+  transform:translateX(-50%);
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(20,22,28,.96);
+  color:#fff;
+  font:500 13px/1.2 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  box-shadow:0 6px 18px rgba(0,0,0,.3);
+  z-index:2147483647;
+  opacity:0;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.kayak-copy-toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+
