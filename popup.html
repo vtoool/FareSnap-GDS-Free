@@ -169,6 +169,17 @@
       color: var(--color-text);
     }
 
+    .field__control--locked {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      caret-color: transparent;
+    }
+
+    .field__control--locked::selection {
+      background: transparent;
+    }
+
     .field__hint {
       font-size: 0.75rem;
       color: var(--color-muted);
@@ -434,6 +445,17 @@
       text-overflow: ellipsis;
     }
 
+    .availability-preview--locked,
+    .availability-preview--locked .availability-preview__command {
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+    }
+
+    .availability-preview--locked .availability-preview__command {
+      cursor: default;
+    }
+
     .availability-preview__copy {
       padding: 0.42rem 0.78rem;
       font-size: 0.75rem;
@@ -592,7 +614,7 @@
         <label class="field__label" for="viInput">VI* itinerary</label>
         <textarea id="viInput" class="field__control field__control--textarea" placeholder="Paste Sabre VI* output here"></textarea>
       </div>
-      <div id="availabilityPreview" class="availability-preview">
+      <div id="availabilityPreview" class="availability-preview" data-locked="true">
         <div class="availability-preview__title">Availability commands</div>
         <div id="availabilityList" class="availability-preview__list" role="list"></div>
         <p class="availability-preview__hint">Generated from the VI* text — copying commands requires a Pro upgrade.</p>
@@ -603,9 +625,9 @@
       </div>
       <div id="convertStatus" class="status status--success"></div>
       <div id="convertError" class="status status--error"></div>
-      <div class="field">
+      <div class="field converter__output">
         <label class="field__label" for="iOutput">*I result</label>
-        <textarea id="iOutput" class="field__control field__control--textarea" readonly placeholder="Converted *I output will appear here"></textarea>
+        <textarea id="iOutput" class="field__control field__control--textarea field__control--locked" data-locked="true" readonly placeholder="Converted *I output will appear here"></textarea>
       </div>
       <p class="pro-note">Clipboard copying and availability commands are reserved for FareSnap Pro.</p>
     </section>
