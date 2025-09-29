@@ -69,6 +69,7 @@
   const cardGroupMap = new WeakMap();
   const activeGroups = new Set();
   const cardGroupsByKey = new Map();
+  const PRO_UPSELL_MESSAGE = 'Upgrade to FareSnap Pro to unlock this feature.';
   const kayakInlineSlotMap = new WeakMap();
   const itaGroupsByKey = new Map();
   let modalDimScheduled = false;
@@ -1035,6 +1036,22 @@
       effectiveShowJourneyButtons = false;
     }
 
+    if(!IS_ITA && !effectiveConfigs.some(cfg => cfg && cfg.copyKind === 'availability')){
+      effectiveConfigs = effectiveConfigs.slice();
+      effectiveConfigs.push({
+        key: 'availability-pro',
+        label: 'Availability',
+        title: 'Upgrade to FareSnap Pro to unlock availability commands',
+        ariaLabel: 'Upgrade to FareSnap Pro to unlock availability commands',
+        direction: 'all',
+        copyKind: 'availability',
+        locked: true,
+        lockedBadge: true,
+        lockedMessage: 'Upgrade to FareSnap Pro to unlock availability commands.',
+        isPlaceholder: true
+      });
+    }
+
     const signaturePieces = [
       effectiveShowJourneyButtons ? 'multi' : 'simple',
       journeySignatureParts.join('|'),
@@ -1053,8 +1070,35 @@
       signaturePieces.push(segmentSignature);
     }
 
+    const proAvailabilityMessage = 'Upgrade to FareSnap Pro to unlock availability commands.';
+    const proMatrixMessage = 'Upgrade to FareSnap Pro to copy from ITA Matrix.';
+    const proExtraMessage = 'Upgrade to FareSnap Pro for additional copy tools.';
+
+    const normalizedConfigs = effectiveConfigs.map((cfg, idx) => {
+      if(!cfg) return cfg;
+      const normalized = Object.assign({}, cfg);
+      if(IS_ITA){
+        normalized.locked = true;
+        normalized.lockedBadge = false;
+        normalized.lockedMessage = normalized.lockedMessage || proMatrixMessage;
+      } else if(idx > 0 || normalized.copyKind === 'availability'){
+        normalized.locked = true;
+        if(normalized.lockedBadge == null){
+          normalized.lockedBadge = true;
+        }
+        normalized.lockedMessage = normalized.lockedMessage || proAvailabilityMessage;
+      } else {
+        normalized.locked = false;
+        normalized.lockedBadge = false;
+      }
+      if(normalized.locked && !normalized.lockedMessage){
+        normalized.lockedMessage = proExtraMessage;
+      }
+      return normalized;
+    });
+
     return {
-      configs: effectiveConfigs,
+      configs: normalizedConfigs,
       signature: signaturePieces.join('::'),
       preview,
       showJourneyButtons: effectiveShowJourneyButtons
@@ -1090,12 +1134,26 @@
     if(dirAttr){
       btn.dataset.direction = dirAttr;
     }
-    btn.innerHTML = '<span aria-hidden="true" class="pill pill-text">' + config.label + '</span>' +
+    const baseLabel = config && typeof config.label === 'string' ? config.label : '';
+    const displayLabel = config && config.locked && config.lockedBadge !== false && baseLabel
+      ? `${baseLabel} (Pro)`
+      : baseLabel;
+    btn.innerHTML = '<span aria-hidden="true" class="pill pill-text">' + displayLabel + '</span>' +
                     '<span aria-hidden="true" class="pill pill-check">✓</span>';
+
+    if(config && config.locked){
+      btn.dataset.locked = '1';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.classList.add('kayak-copy-btn--locked');
+    }
 
     btn.addEventListener('click', async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      if(config && config.locked){
+        toast((config && config.lockedMessage) || PRO_UPSELL_MESSAGE);
+        return;
+      }
       if(btn.dataset.busy === '1') return;
       btn.dataset.busy = '1';
       try{
