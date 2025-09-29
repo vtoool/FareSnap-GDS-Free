@@ -347,10 +347,39 @@
       box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
     }
 
+    .card--limited {
+      position: relative;
+      background: linear-gradient(160deg, rgba(75, 107, 255, 0.06), transparent 58%), var(--color-surface);
+    }
+
+    .card--limited::after {
+      content: "Pro features locked";
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(75, 107, 255, 0.6);
+    }
+
     .converter-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
+    }
+
+    .btn--locked {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none !important;
+      box-shadow: none !important;
+      border-style: dashed;
+    }
+
+    .btn--locked:focus-visible {
+      outline: none;
     }
 
     .availability-preview {
@@ -383,6 +412,10 @@
       border-radius: var(--radius-sm);
       background: #fff;
       border: 1px solid rgba(34, 44, 82, 0.08);
+    }
+
+    .availability-preview--locked {
+      opacity: 0.8;
     }
 
     .availability-preview__label {
@@ -430,8 +463,62 @@
       box-shadow: none;
     }
 
+    .availability-preview__copy--locked {
+      cursor: not-allowed;
+      opacity: 0.55;
+      border-style: dashed;
+    }
+
     .availability-preview__hint {
       font-size: 0.75rem;
+      color: var(--color-muted);
+    }
+
+    .pro-note {
+      font-size: 0.78rem;
+      color: var(--color-muted);
+      background: rgba(75, 107, 255, 0.08);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed rgba(75, 107, 255, 0.28);
+    }
+
+    .pro-upsell-message {
+      display: none;
+      font-size: 0.78rem;
+      color: var(--color-accent-strong);
+      margin: 0;
+    }
+
+    .pro-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.1rem 0.5rem;
+      background: linear-gradient(140deg, rgba(75, 107, 255, 0.85), rgba(30, 64, 255, 0.92));
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 999px;
+      margin-left: 8px;
+    }
+
+    .toggle--locked {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .toggle--locked input {
+      background: rgba(91, 96, 114, 0.22);
+    }
+
+    .toggle--locked input::after {
+      background: #d3d6e6;
+    }
+
+    .toggle--locked .toggle__label {
       color: var(--color-muted);
     }
 
@@ -478,18 +565,24 @@
         <span id="bookingStatusNote" class="auto-detect__note"></span>
         <button id="restoreAutoBtn" type="button" class="link-btn">Restore auto cabin detection</button>
       </div>
-      <label class="toggle" for="enableDirections">
-        <input id="enableDirections" type="checkbox" />
-        <span class="toggle__label">Show availability buttons</span>
+      <label class="toggle toggle--locked" for="enableDirections">
+        <input id="enableDirections" type="checkbox" data-locked="true" />
+        <span class="toggle__label">Show availability buttons <span class="pro-badge">Pro</span></span>
       </label>
       <p class="toggle-help">Adds outbound / inbound (and multi-city journey) availability pills next to *I.</p>
+      <label class="toggle toggle--locked" for="smartDetection">
+        <input id="smartDetection" type="checkbox" data-locked="true" />
+        <span class="toggle__label">Smart booking class detection <span class="pro-badge">Pro</span></span>
+      </label>
+      <p class="toggle-help">Automatically maps cabins (BIZ → J, FIRST → F, ECONOMY → Y) to booking classes.</p>
+      <p id="proNotice" class="pro-upsell-message" role="status" aria-live="polite"></p>
       <div class="card__actions">
         <button id="saveBtn" type="button" class="btn btn-primary">Save preferences</button>
         <span id="ok" class="status-pill">Saved</span>
       </div>
     </section>
 
-    <section class="card converter">
+    <section class="card card--limited converter">
       <header class="card__header">
         <span class="card__eyebrow">Converter</span>
         <h2 class="card__title">Turn VI* into *I instantly</h2>
@@ -502,11 +595,11 @@
       <div id="availabilityPreview" class="availability-preview">
         <div class="availability-preview__title">Availability commands</div>
         <div id="availabilityList" class="availability-preview__list" role="list"></div>
-        <p class="availability-preview__hint">Generated from the VI* text — tap any command to copy it instantly.</p>
+        <p class="availability-preview__hint">Generated from the VI* text — copying commands requires a Pro upgrade.</p>
       </div>
       <div class="converter-actions">
         <button id="convertBtn" type="button" class="btn btn-secondary">Convert to *I</button>
-        <button id="copyBtn" type="button" class="btn btn-primary" disabled>Copy result</button>
+        <button id="copyBtn" type="button" class="btn btn-primary btn--locked" data-locked="true" aria-disabled="true">Copy result (Pro)</button>
       </div>
       <div id="convertStatus" class="status status--success"></div>
       <div id="convertError" class="status status--error"></div>
@@ -514,6 +607,7 @@
         <label class="field__label" for="iOutput">*I result</label>
         <textarea id="iOutput" class="field__control field__control--textarea" readonly placeholder="Converted *I output will appear here"></textarea>
       </div>
+      <p class="pro-note">Clipboard copying and availability commands are reserved for FareSnap Pro.</p>
     </section>
   </main>
   <script src="airlines.js"></script>

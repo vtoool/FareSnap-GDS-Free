@@ -9,6 +9,10 @@
   const NORMALIZE_CABIN_FN = ROOT_SCOPE && typeof ROOT_SCOPE.normalizeCabinEnum === 'function' ? ROOT_SCOPE.normalizeCabinEnum : null;
   const CABIN_FALLBACK_BOOKING = { FIRST: 'F', BUSINESS: 'J', PREMIUM: 'N', ECONOMY: 'Y' };
   const SHORT_HAUL_FIRST_LIMIT_HOURS = 5;
+  const PRO_UPSELL_MESSAGE = 'Upgrade to FareSnap Pro to unlock this feature.';
+  const PRO_CONVERTER_COPY_MESSAGE = 'Upgrade to FareSnap Pro to copy VI* conversions to your clipboard.';
+  const PRO_AVAILABILITY_COPY_MESSAGE = 'Upgrade to FareSnap Pro to copy availability commands.';
+  const PRO_SMART_DETECTION_MESSAGE = 'Smart booking class detection is available in FareSnap Pro.';
 
   const bookingInput = document.getElementById('bookingClass');
   const statusInput = document.getElementById('segmentStatus');
@@ -27,16 +31,26 @@
   const restoreAutoBtn = document.getElementById('restoreAutoBtn');
   const availabilityPreview = document.getElementById('availabilityPreview');
   const availabilityList = document.getElementById('availabilityList');
+  const proNotice = document.getElementById('proNotice');
+  const smartDetectionToggle = document.getElementById('smartDetection');
 
   const COPY_SUCCESS_LABEL = 'Copied';
   const COPY_RESET_DELAY = 1600;
   const copyBtnDefaultLabel = copyBtn && copyBtn.textContent ? copyBtn.textContent.trim() || 'Copy result' : 'Copy result';
 
+  if (copyBtn){
+    setLockedFlag(copyBtn);
+    copyBtn.classList.add('btn--locked');
+    copyBtn.setAttribute('aria-disabled', 'true');
+    copyBtn.disabled = true;
+  }
+
   if (bookingStatusNote){
-    bookingStatusNote.textContent = 'Checking auto cabin detection…';
+    bookingStatusNote.textContent = PRO_SMART_DETECTION_MESSAGE;
   }
   if (restoreAutoBtn){
     restoreAutoBtn.style.display = 'none';
+    restoreAutoBtn.disabled = true;
   }
   if (availabilityPreview){
     availabilityPreview.style.display = 'none';
@@ -46,7 +60,7 @@
     bookingClassLocked: false,
     originalBookingClass: 'J',
     bookingEdited: false,
-    autoCopy: true,
+    autoCopy: false,
     lastInput: '',
     lastResult: '',
     lastCopied: '',
@@ -56,6 +70,67 @@
     copyLabelTimer: null,
     copyHoldUntil: 0
   };
+
+  function showProNotice(message){
+    if (!proNotice) return;
+    proNotice.textContent = message || PRO_UPSELL_MESSAGE;
+    proNotice.style.display = 'block';
+    if (showProNotice._timer){
+      clearTimeout(showProNotice._timer);
+    }
+    showProNotice._timer = setTimeout(() => {
+      proNotice.style.display = 'none';
+      proNotice.textContent = '';
+      showProNotice._timer = null;
+    }, 2600);
+  }
+
+  function setupLockedToggle(input, message){
+    if (!input) return;
+    const noticeMessage = message || PRO_UPSELL_MESSAGE;
+    const handler = (event) => {
+      if (event){
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      input.checked = false;
+      showProNotice(noticeMessage);
+    };
+    input.checked = false;
+    input.addEventListener('click', handler);
+    input.addEventListener('change', handler);
+    input.addEventListener('keydown', (event) => {
+      const key = (event && (event.key || event.code || '')).toLowerCase();
+      if (key === ' ' || key === 'spacebar' || key === 'space' || key === 'enter'){
+        handler(event);
+      }
+    });
+  }
+
+  setupLockedToggle(enableDirections, 'Upgrade to FareSnap Pro to unlock availability buttons.');
+  setupLockedToggle(smartDetectionToggle, PRO_SMART_DETECTION_MESSAGE);
+
+  function setLockedFlag(element){
+    if (!element) return;
+    if (element.dataset){
+      element.dataset.locked = '1';
+    } else if (typeof element.setAttribute === 'function'){
+      element.setAttribute('data-locked', '1');
+    }
+  }
+
+  function isElementLocked(element){
+    if (!element) return false;
+    if (element.dataset && Object.prototype.hasOwnProperty.call(element.dataset, 'locked')){
+      const value = element.dataset.locked;
+      return value === '1' || value === 'true' || value === true;
+    }
+    if (typeof element.getAttribute === 'function'){
+      const attr = element.getAttribute('data-locked');
+      return attr === '1' || attr === 'true';
+    }
+    return false;
+  }
 
   function normalizeCabinValue(value){
     if (!value && value !== 0) return null;
@@ -127,7 +202,7 @@
       statusInput.value = segmentStatus;
     }
     if (enableDirections){
-      enableDirections.checked = !!(res && res.enableDirectionButtons);
+      enableDirections.checked = false;
     }
     state.originalBookingClass = bookingValue;
     state.bookingClassLocked = !!(res && res.bookingClassLocked);
@@ -224,7 +299,15 @@
   }
 
   if (copyBtn){
-    copyBtn.addEventListener('click', () => {
+    copyBtn.addEventListener('click', (event) => {
+      if (event){
+        event.preventDefault();
+      }
+      if (isElementLocked(copyBtn)){
+        showError(PRO_CONVERTER_COPY_MESSAGE);
+        showProNotice(PRO_CONVERTER_COPY_MESSAGE);
+        return;
+      }
       handleManualCopy();
     });
   }
@@ -236,6 +319,11 @@
       event.preventDefault();
       const index = parseInt(button.getAttribute('data-index') || '', 10);
       if (!Number.isFinite(index) || index < 0) return;
+      if (isElementLocked(button)){
+        showError(PRO_AVAILABILITY_COPY_MESSAGE);
+        showProNotice(PRO_AVAILABILITY_COPY_MESSAGE);
+        return;
+      }
       if (button.disabled) return;
       button.disabled = true;
       copyAvailabilityCommand(index, button).finally(() => {
@@ -259,6 +347,9 @@
     resetCopyButtonLabel();
     if (copyBtn){
       copyBtn.disabled = true;
+      setLockedFlag(copyBtn);
+      copyBtn.classList.add('btn--locked');
+      copyBtn.setAttribute('aria-disabled', 'true');
     }
 
     const sameInput = state.lastInput === raw;
@@ -291,7 +382,12 @@
       }
 
       state.lastResult = itineraryText;
-      if (copyBtn) copyBtn.disabled = false;
+      if (copyBtn){
+        copyBtn.disabled = false;
+        setLockedFlag(copyBtn);
+        copyBtn.classList.add('btn--locked');
+        copyBtn.setAttribute('aria-disabled', 'true');
+      }
       const segmentCount = segments.length || itineraryText.split('\n').filter(line => line.trim()).length;
       updateAvailabilityPreview(raw);
       const shouldAutoCopy = state.autoCopy && (!sameInput || itineraryText !== state.lastCopied);
@@ -330,6 +426,11 @@
 
   async function handleManualCopy(){
     if (!outputEl) return;
+    if (isElementLocked(copyBtn)){
+      showError(PRO_CONVERTER_COPY_MESSAGE);
+      showProNotice(PRO_CONVERTER_COPY_MESSAGE);
+      return;
+    }
     resetFeedback();
     resetCopyButtonLabel(true);
     const text = (outputEl.value || '').trim();
@@ -385,6 +486,11 @@
   }
 
   async function copyAvailabilityCommand(index, triggerButton){
+    if (isElementLocked(triggerButton)){
+      showError(PRO_AVAILABILITY_COPY_MESSAGE);
+      showProNotice(PRO_AVAILABILITY_COPY_MESSAGE);
+      return;
+    }
     if (!Array.isArray(state.availabilityCommands) || !state.availabilityCommands[index]){
       showError('No availability command to copy yet.');
       return;
@@ -464,6 +570,7 @@
     state.lastAvailabilityCopiedIndex = -1;
     if (!trimmed || typeof window.convertTextToAvailability !== 'function'){
       availabilityPreview.style.display = 'none';
+      availabilityPreview.classList.remove('availability-preview--locked');
       return;
     }
     let preview = null;
@@ -603,6 +710,13 @@
     }).join('');
     availabilityList.innerHTML = html;
     availabilityPreview.style.display = 'grid';
+    availabilityPreview.classList.add('availability-preview--locked');
+    const buttons = availabilityList.querySelectorAll('.availability-preview__copy');
+    buttons.forEach(btn => {
+      btn.classList.add('availability-preview__copy--locked');
+      setLockedFlag(btn);
+      btn.setAttribute('aria-disabled', 'true');
+    });
   }
 
   function toAirportCode(value){
@@ -974,7 +1088,12 @@
   function resetConversionState(){
     resetFeedback();
     if (outputEl) outputEl.value = '';
-    if (copyBtn) copyBtn.disabled = true;
+    if (copyBtn){
+      copyBtn.disabled = true;
+      setLockedFlag(copyBtn);
+      copyBtn.classList.add('btn--locked');
+      copyBtn.setAttribute('aria-disabled', 'true');
+    }
     resetCopyButtonLabel(true);
     state.lastResult = '';
     state.lastCopied = '';
@@ -1045,19 +1164,10 @@
 
   function updateAutoDetectionNote(){
     if (!bookingStatusNote) return;
-    const currentClass = bookingInput ? sanitizeBookingClass(bookingInput.value) : state.originalBookingClass;
-    if (state.bookingClassLocked){
-      bookingStatusNote.textContent = `Auto cabin detection paused — using manual booking class ${currentClass || 'J'}.`;
-      if (restoreAutoBtn){
-        restoreAutoBtn.style.display = '';
-        restoreAutoBtn.disabled = false;
-      }
-    } else {
-      bookingStatusNote.textContent = `Auto cabin detection active (default ${currentClass || 'J'}).`;
-      if (restoreAutoBtn){
-        restoreAutoBtn.style.display = 'none';
-        restoreAutoBtn.disabled = false;
-      }
+    bookingStatusNote.textContent = PRO_SMART_DETECTION_MESSAGE;
+    if (restoreAutoBtn){
+      restoreAutoBtn.style.display = 'none';
+      restoreAutoBtn.disabled = true;
     }
   }
 

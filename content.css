@@ -78,6 +78,21 @@
   overflow:hidden;
 }
 
+.kayak-copy-btn.kayak-copy-btn--locked{
+  cursor:not-allowed;
+  opacity:0.7;
+  filter:saturate(0.5) grayscale(0.25);
+  box-shadow:0 2px 8px rgba(0,0,0,.14);
+  border-color:rgba(122, 134, 196, .6);
+  color:#4b5563;
+}
+
+.kayak-copy-btn.kayak-copy-btn--locked:hover,
+.kayak-copy-btn.kayak-copy-btn--locked:active{
+  transform:none;
+  box-shadow:0 2px 8px rgba(0,0,0,.14);
+}
+
 .kayak-copy-btn.kayak-copy-btn--availability{
   width:auto;
   min-width:72px;
