@@ -110,6 +110,83 @@
   setupLockedToggle(enableDirections, 'Upgrade to FareSnap Pro to unlock availability buttons.');
   setupLockedToggle(smartDetectionToggle, PRO_SMART_DETECTION_MESSAGE);
 
+  function attachLockedClipboardGuards(element, options){
+    if (!element || typeof element.addEventListener !== 'function'){
+      return;
+    }
+    const message = options && options.message ? options.message : PRO_UPSELL_MESSAGE;
+    const blockFocus = options && Object.prototype.hasOwnProperty.call(options, 'blockFocus')
+      ? options.blockFocus
+      : true;
+    const notifyLocked = () => {
+      if (message){
+        showProNotice(message);
+      }
+    };
+    const shouldBlock = () => isElementLocked(element);
+    const blockEvent = (event) => {
+      if (!shouldBlock()){
+        return;
+      }
+      if (event && typeof event.preventDefault === 'function'){
+        event.preventDefault();
+      }
+      if (event && typeof event.stopPropagation === 'function'){
+        event.stopPropagation();
+      }
+      notifyLocked();
+    };
+    ['copy', 'cut', 'paste', 'selectstart', 'contextmenu'].forEach((type) => {
+      element.addEventListener(type, blockEvent);
+    });
+    element.addEventListener('keydown', (event) => {
+      if (!shouldBlock()){
+        return;
+      }
+      if (!event){
+        return;
+      }
+      const key = (event.key || '').toLowerCase();
+      const ctrlLike = event.ctrlKey || event.metaKey;
+      if (
+        (ctrlLike && (key === 'a' || key === 'c' || key === 'x' || key === 'v')) ||
+        (event.shiftKey && (key === 'arrowleft' || key === 'arrowright' || key === 'arrowup' || key === 'arrowdown'))
+      ){
+        blockEvent(event);
+      }
+    });
+    if (blockFocus){
+      element.addEventListener('focus', (event) => {
+        if (!shouldBlock()){
+          return;
+        }
+        blockEvent(event);
+        if (typeof element.blur === 'function'){
+          setTimeout(() => {
+            if (shouldBlock()){
+              element.blur();
+            }
+          }, 0);
+        }
+      });
+    }
+  }
+
+  if (outputEl){
+    setLockedFlag(outputEl);
+    outputEl.setAttribute('aria-readonly', 'true');
+    outputEl.setAttribute('tabindex', '-1');
+    attachLockedClipboardGuards(outputEl, { message: PRO_CONVERTER_COPY_MESSAGE });
+  }
+  if (availabilityPreview){
+    setLockedFlag(availabilityPreview);
+    attachLockedClipboardGuards(availabilityPreview, { message: PRO_AVAILABILITY_COPY_MESSAGE, blockFocus: false });
+  }
+  if (availabilityList){
+    setLockedFlag(availabilityList);
+    attachLockedClipboardGuards(availabilityList, { message: PRO_AVAILABILITY_COPY_MESSAGE, blockFocus: false });
+  }
+
   function setLockedFlag(element){
     if (!element) return;
     if (element.dataset){
@@ -401,8 +478,8 @@
           return;
         }
         state.lastCopied = '';
-        if (outcome.fallback){
-          showError('Clipboard blocked. Result selected for manual copy.');
+        if (outcome.blocked){
+          showError('Clipboard blocked. Please allow clipboard access and try again.');
           return;
         }
         showError('Copy failed. Use the Copy button.');
@@ -446,8 +523,8 @@
       return;
     }
     state.lastCopied = '';
-    if (outcome.fallback){
-      showError('Clipboard blocked. Result selected for manual copy.');
+    if (outcome.blocked){
+      showError('Clipboard blocked. Please allow clipboard access and try again.');
       return;
     }
     showError('Copy failed.');
@@ -465,24 +542,11 @@
         // fall through to execCommand fallback
       }
     }
-    if (outputEl){
-      try {
-        if (document.queryCommandSupported && document.queryCommandSupported('copy')){
-          outputEl.focus();
-          outputEl.select();
-          if (document.execCommand('copy')){
-            return { ok: true };
-          }
-        }
-      } catch (err) {
-        // ignore and continue to selection fallback
-      }
-      try {
-        outputEl.focus();
-        outputEl.select();
-      } catch (err) {}
+    const success = await copyPlainText(text);
+    if (success){
+      return { ok: true };
     }
-    return { ok: false, fallback: true };
+    return { ok: false, blocked: true };
   }
 
   async function copyAvailabilityCommand(index, triggerButton){
@@ -512,8 +576,7 @@
     if (triggerButton && typeof triggerButton.focus === 'function'){
       triggerButton.focus();
     }
-    highlightAvailabilityCommand(index);
-    showError('Clipboard blocked. Command highlighted for manual copy.');
+    showError('Clipboard blocked. Please allow clipboard access and try again.');
   }
 
   async function copyPlainText(text){
@@ -544,20 +607,6 @@
     }
     document.body.removeChild(temp);
     return ok;
-  }
-
-  function highlightAvailabilityCommand(index){
-    if (!availabilityList) return;
-    try {
-      const commandEl = availabilityList.querySelector(`code[data-command-index="${index}"]`);
-      if (!commandEl) return;
-      const selection = window.getSelection ? window.getSelection() : null;
-      if (!selection) return;
-      const range = document.createRange();
-      range.selectNodeContents(commandEl);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    } catch (err) {}
   }
 
   function updateAvailabilityPreview(rawText){
