@@ -206,6 +206,36 @@
   animation:kayak-copy-ping .45s ease-out forwards;
 }
 
+.kayak-copy-preview-bubble{
+  position:fixed;
+  z-index:2147483004;
+  max-width:min(420px, 86vw);
+  padding:10px 14px;
+  border-radius:12px;
+  background:rgba(17,24,39,.94);
+  color:#f9fafb;
+  box-shadow:0 10px 28px rgba(15,23,42,.32);
+  border:1px solid rgba(148,163,184,.28);
+  font:500 12px/1.5 ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing:.015em;
+  pointer-events:none;
+  user-select:none;
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity .16s ease, transform .16s ease;
+  white-space:normal;
+  word-break:break-word;
+}
+
+.kayak-copy-preview-bubble--below{
+  transform:translateY(-6px);
+}
+
+.kayak-copy-preview-bubble--visible{
+  opacity:1;
+  transform:translateY(0);
+}
+
 .kayak-copy-btn.kayak-copy-btn--availability.is-copied::after{
   border-radius:999px;
 }

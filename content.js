@@ -75,6 +75,10 @@
   let modalDimScheduled = false;
   let modalDimState = false;
 
+  let availabilityPreviewEl = null;
+  let availabilityPreviewAnchor = null;
+  let availabilityPreviewHideTimer = null;
+
   let itaResultsObserver = null;
   let itaObservedRoot = null;
 
@@ -170,6 +174,155 @@
     t.classList.add('show');
     clearTimeout(toast._t);
     toast._t = setTimeout(() => t.classList.remove('show'), 1400);
+  }
+
+  function ensureAvailabilityPreviewElement(){
+    if(availabilityPreviewEl && availabilityPreviewEl.isConnected){
+      return availabilityPreviewEl;
+    }
+    const el = document.createElement('div');
+    el.className = 'kayak-copy-preview-bubble';
+    el.setAttribute('aria-hidden', 'true');
+    document.documentElement.appendChild(el);
+    availabilityPreviewEl = el;
+    return el;
+  }
+
+  function hideAvailabilityPreview(anchor, immediate){
+    if(anchor && availabilityPreviewAnchor && anchor !== availabilityPreviewAnchor){
+      return;
+    }
+    const el = availabilityPreviewEl;
+    if(!el){
+      availabilityPreviewAnchor = null;
+      return;
+    }
+    availabilityPreviewAnchor = null;
+    if(availabilityPreviewHideTimer){
+      clearTimeout(availabilityPreviewHideTimer);
+      availabilityPreviewHideTimer = null;
+    }
+    el.classList.remove('kayak-copy-preview-bubble--below');
+    if(immediate){
+      el.classList.remove('kayak-copy-preview-bubble--visible');
+      el.style.visibility = 'hidden';
+      el.textContent = '';
+      return;
+    }
+    el.classList.remove('kayak-copy-preview-bubble--visible');
+    availabilityPreviewHideTimer = setTimeout(() => {
+      if(availabilityPreviewAnchor){
+        return;
+      }
+      el.style.visibility = 'hidden';
+      el.textContent = '';
+      availabilityPreviewHideTimer = null;
+    }, 160);
+  }
+
+  function computeAvailabilityPreviewCommand(card, config, btn){
+    if(!btn || !config || config.copyKind !== 'availability' || config.isPlaceholder){
+      return '';
+    }
+    const cached = btn.dataset && btn.dataset.previewCommand ? btn.dataset.previewCommand : '';
+    if(cached){
+      return cached;
+    }
+    if(typeof window.convertTextToAvailability !== 'function'){
+      return '';
+    }
+    let rawText = '';
+    try {
+      rawText = extractVisibleText(card);
+    } catch (err) {
+      rawText = '';
+    }
+    if(!rawText || !rawText.trim()){
+      return '';
+    }
+    const opts = { direction: config.direction || 'all' };
+    if(Array.isArray(config.segmentRange) && config.segmentRange.length === 2){
+      opts.segmentRange = [
+        Number(config.segmentRange[0]),
+        Number(config.segmentRange[1])
+      ];
+    }
+    if(typeof config.journeyIndex === 'number'){
+      opts.journeyIndex = config.journeyIndex;
+    }
+    let previewCommand = '';
+    try {
+      previewCommand = window.convertTextToAvailability(rawText, opts);
+    } catch (err) {
+      console.warn('Availability preview failed:', err);
+      previewCommand = '';
+    }
+    const cleaned = (previewCommand || '').toString().trim();
+    if(cleaned && btn.dataset){
+      btn.dataset.previewCommand = cleaned;
+    }
+    return cleaned;
+  }
+
+  function showAvailabilityPreview(card, btn, config){
+    if(!btn || !config || config.copyKind !== 'availability' || config.isPlaceholder){
+      return;
+    }
+    if(!config.locked){
+      return;
+    }
+    const el = ensureAvailabilityPreviewElement();
+    if(!el){
+      return;
+    }
+    const command = computeAvailabilityPreviewCommand(card, config, btn);
+    if(!command){
+      hideAvailabilityPreview(btn, true);
+      return;
+    }
+    availabilityPreviewAnchor = btn;
+    if(availabilityPreviewHideTimer){
+      clearTimeout(availabilityPreviewHideTimer);
+      availabilityPreviewHideTimer = null;
+    }
+    el.textContent = command;
+    el.dataset.direction = config.directionKind || config.direction || '';
+    el.dataset.label = config.label || '';
+    el.dataset.previewOnly = config.previewOnly ? '1' : '0';
+    el.style.visibility = 'hidden';
+    el.classList.remove('kayak-copy-preview-bubble--below');
+    el.classList.add('kayak-copy-preview-bubble--visible');
+    let rect = null;
+    try {
+      rect = btn.getBoundingClientRect();
+    } catch (err) {
+      rect = null;
+    }
+    if(!rect){
+      el.style.visibility = 'hidden';
+      return;
+    }
+    const margin = 12;
+    const bubbleRect = el.getBoundingClientRect();
+    let top = rect.top - bubbleRect.height - margin;
+    let below = false;
+    if(top < margin){
+      top = rect.bottom + margin;
+      below = true;
+    }
+    let left = rect.left + (rect.width / 2) - (bubbleRect.width / 2);
+    const maxLeft = window.innerWidth - bubbleRect.width - margin;
+    if(left < margin){
+      left = margin;
+    } else if(left > maxLeft){
+      left = Math.max(margin, maxLeft);
+    }
+    if(below){
+      el.classList.add('kayak-copy-preview-bubble--below');
+    }
+    el.style.left = `${Math.round(left)}px`;
+    el.style.top = `${Math.round(top)}px`;
+    el.style.visibility = 'visible';
   }
 
   function cardLooksLikeAd(card){
@@ -914,7 +1067,9 @@
     const journeys = preview && Array.isArray(preview.journeys) ? preview.journeys : [];
     const segments = preview && Array.isArray(preview.segments) ? preview.segments : [];
     const multiCity = !!(preview && preview.isMultiCity && journeys.length > 0);
-    const showJourneyButtons = multiCity && SETTINGS.enableDirectionButtons;
+    const allowAvailabilityPreview = !IS_ITA;
+    const includeAvailabilityButtons = SETTINGS.enableDirectionButtons || allowAvailabilityPreview;
+    const showJourneyButtons = multiCity && includeAvailabilityButtons;
 
     const journeySignatureParts = [];
     if(showJourneyButtons){
@@ -949,7 +1104,7 @@
         });
         journeySignatureParts.push(`${start}-${end}-${origin || ''}-${dest || ''}-${indexHint}`);
       });
-    } else if(SETTINGS.enableDirectionButtons && (!multiCity || IS_ITA)){
+    } else if(includeAvailabilityButtons && (!multiCity || IS_ITA)){
       const directionGroups = (typeof window.computeDirectionsFromSegments === 'function' && segments.length)
         ? window.computeDirectionsFromSegments(segments, { journeys })
         : [];
@@ -1028,7 +1183,7 @@
     let effectiveConfigs = configs;
     let effectiveShowJourneyButtons = showJourneyButtons;
 
-    if(!SETTINGS.enableDirectionButtons){
+    if(IS_ITA && !SETTINGS.enableDirectionButtons){
       effectiveConfigs = configs.filter(cfg => cfg && cfg.copyKind !== 'availability');
       if(!effectiveConfigs.length && configs.length){
         effectiveConfigs = [ configs[0] ];
@@ -1091,6 +1246,9 @@
         normalized.locked = false;
         normalized.lockedBadge = false;
       }
+      if(!IS_ITA && normalized.copyKind === 'availability' && !SETTINGS.enableDirectionButtons){
+        normalized.previewOnly = true;
+      }
       if(normalized.locked && !normalized.lockedMessage){
         normalized.lockedMessage = proExtraMessage;
       }
@@ -1147,9 +1305,40 @@
       btn.classList.add('kayak-copy-btn--locked');
     }
 
+    const shouldPreviewAvailability = !!(config && config.copyKind === 'availability' && config.locked && !config.isPlaceholder);
+    if(shouldPreviewAvailability){
+      const previewLabel = (config.ariaLabel || baseLabel || 'Availability command')
+        + ' (Preview only. Upgrade to copy.)';
+      btn.setAttribute('aria-label', previewLabel);
+      const handlePointerEnter = (event) => {
+        if(event && typeof event.pointerType === 'string' && event.pointerType.toLowerCase() === 'touch'){
+          return;
+        }
+        showAvailabilityPreview(card, btn, config);
+      };
+      const handlePointerLeave = () => {
+        hideAvailabilityPreview(btn, false);
+      };
+      btn.addEventListener('pointerenter', handlePointerEnter);
+      btn.addEventListener('pointerleave', handlePointerLeave);
+      btn.addEventListener('pointercancel', () => hideAvailabilityPreview(btn, true));
+      btn.addEventListener('focus', () => showAvailabilityPreview(card, btn, config));
+      btn.addEventListener('blur', () => hideAvailabilityPreview(btn, false));
+      btn.addEventListener('pointerdown', () => hideAvailabilityPreview(btn, true));
+      btn.addEventListener('keydown', (event) => {
+        const key = (event && (event.key || event.code || '')).toLowerCase();
+        if(key === 'escape'){
+          hideAvailabilityPreview(btn, true);
+        }
+      });
+    }
+
     btn.addEventListener('click', async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      if(shouldPreviewAvailability){
+        hideAvailabilityPreview(btn, true);
+      }
       if(config && config.locked){
         toast((config && config.lockedMessage) || PRO_UPSELL_MESSAGE);
         return;
@@ -1636,6 +1825,14 @@
   document.addEventListener('scroll', schedulePositionSync, true);
   window.addEventListener('resize', schedulePositionSync, true);
   window.addEventListener('orientationchange', schedulePositionSync);
+  window.addEventListener('scroll', () => hideAvailabilityPreview(null, true), true);
+  window.addEventListener('resize', () => hideAvailabilityPreview(null, true));
+  window.addEventListener('blur', () => hideAvailabilityPreview(null, true));
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden){
+      hideAvailabilityPreview(null, true);
+    }
+  });
 
   function refreshExistingGroups(){
     activeGroups.forEach(group => {
